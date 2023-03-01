@@ -1,9 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using UnityEngine;
 using UnityEditor;
-using UnityEngine;
-
-#if UNITY_EDITOR
+using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// Sorts bone indexes in imported meshes.<br />
@@ -16,7 +14,7 @@ public class AssetPostProcessorReorderBones : AssetPostprocessor
         Process(g);
     }
 
-    private void Process(GameObject g)
+    private static void Process(GameObject g)
     {
         var smr = g.GetComponentInChildren<SkinnedMeshRenderer>();
         if (smr == null)
@@ -73,11 +71,9 @@ public class AssetPostProcessorReorderBones : AssetPostprocessor
 
         if (A.IsChildOf(B))
         {
-            return -1;
+            return 1;
         }
 
         return 0;
     }
 }
-
-#endif
