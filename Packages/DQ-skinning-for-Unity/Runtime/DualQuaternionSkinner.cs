@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using UnityEditor;
 using UnityEngine;
 
@@ -65,7 +64,7 @@ public class DualQuaternionSkinner : MonoBehaviour
         public Vector4    position;
     }
 
-    private const int k_numThreads   = 128; // must be same in compute shader code
+    private const int k_numThreads   = 128;  // must be same in compute shader code (DQ.cginc)
     private const int k_textureWidth = 1024; // no need to adjust compute shaders
 
     /// <summary>
@@ -220,8 +219,9 @@ public class DualQuaternionSkinner : MonoBehaviour
 
     private void UpdateViewFrustumCulling()
     {
-        if (m_viewFrustumCulling) { MeshFilter.mesh.bounds = SkinnedMeshRenderer.localBounds; }
-        else { MeshFilter.mesh.bounds = new Bounds(Vector3.zero, Vector3.one * 100000000); }
+        MeshFilter.mesh.bounds = m_viewFrustumCulling
+            ? SkinnedMeshRenderer.localBounds
+            : new Bounds(Vector3.zero, Vector3.one * 100000000);
     }
 
     /// <summary>
@@ -248,10 +248,10 @@ public class DualQuaternionSkinner : MonoBehaviour
     {
         if (weights.Length != m_morphWeights.Length)
         {
-            throw new ArgumentException(
+            throw new System.ArgumentException(
                 "An array of weights must contain the number of elements " +
-                "equal to the number of available blendshapes. Currently " +
-                $"{m_morphWeights.Length} blendshapes ara available but {weights.Length} weights were passed.");
+                $"equal to the number of available blendShapes. Currently " +
+                $"{m_morphWeights.Length} blendShapes ara available but {weights.Length} weights were passed.");
         }
 
         for (int i = 0; i < weights.Length; i++) { m_morphWeights[i] = weights[i]; }
@@ -276,7 +276,7 @@ public class DualQuaternionSkinner : MonoBehaviour
 
         if (index < 0 || index >= m_morphWeights.Length)
         {
-            throw new IndexOutOfRangeException("Blend shape index out of range");
+            throw new System.IndexOutOfRangeException("Blend shape index out of range");
         }
 
         m_morphWeights[index] = weight;
@@ -300,7 +300,7 @@ public class DualQuaternionSkinner : MonoBehaviour
 
         if (index < 0 || index >= m_morphWeights.Length)
         {
-            throw new IndexOutOfRangeException("Blend shape index out of range");
+            throw new System.IndexOutOfRangeException("Blend shape index out of range");
         }
 
         return m_morphWeights[index];
@@ -366,14 +366,7 @@ public class DualQuaternionSkinner : MonoBehaviour
     // calculate texture height enough for given vertices
     private int GetVertexTextureHeight(int vertexCount)
     {
-        return (vertexCount-1) / k_textureWidth + 1;
-    }    
-
-    private int GetVertexTextureHeight(int vertexCount, int textureWidth)
-    {
-        int textureHeight = MeshFilter.mesh.vertexCount / textureWidth;
-        if (MeshFilter.mesh.vertexCount % textureWidth != 0) { textureHeight++; }
-        return textureHeight;
+        return (vertexCount - 1) / k_textureWidth + 1;
     }
 
     private void GrabMeshFromSkinnedMeshRenderer()
@@ -400,23 +393,15 @@ public class DualQuaternionSkinner : MonoBehaviour
 
         for (int i = 0; i < blendShapeCount; i++)
         {
-            mesh.GetBlendShapeFrameVertices(
-                i,
-                0,
-                deltaVertices,
-                deltaNormals,
-                deltaTangents);
+            mesh.GetBlendShapeFrameVertices(i, 0, deltaVertices, deltaNormals, deltaTangents);
 
             m_arrBufMorphDeltas[i] = new ComputeBuffer(numVertInfos, sizeof(float) * 12);
 
             for (int k = 0; k < vertexCount; k++)
             {
-                deltaVertInfos[k].position
-                    = deltaVertices != null ? deltaVertices[k] : Vector3.zero;
-                deltaVertInfos[k].normal
-                    = deltaNormals != null ? deltaNormals[k] : Vector3.zero;
-                deltaVertInfos[k].tangent
-                    = deltaTangents != null ? deltaTangents[k] : Vector3.zero;
+                deltaVertInfos[k].position = deltaVertices[k];
+                deltaVertInfos[k].normal   = deltaNormals[k];
+                deltaVertInfos[k].tangent  = deltaTangents[k];
             }
 
             m_arrBufMorphDeltas[i].SetData(deltaVertInfos);
@@ -490,7 +475,7 @@ public class DualQuaternionSkinner : MonoBehaviour
 
         m_bufVertInfo = new ComputeBuffer(
             numVertInfos,
-            (sizeof(float) * 16) + (sizeof(int) * 4) + sizeof(float));
+            sizeof(float) * 16 + sizeof(int) * 4 + sizeof(float));
         var vertInfos   = new VertexInfo[numVertInfos];
         var vertices    = mesh.vertices;
         var normals     = mesh.normals;
@@ -534,26 +519,22 @@ public class DualQuaternionSkinner : MonoBehaviour
         }
 
         m_bufVertInfo.SetData(vertInfos);
-        m_shaderDqBlend.SetBuffer(
-            m_kernelHandleDqBlend,
-            "vertex_infos",
-            m_bufVertInfo);
+        m_shaderDqBlend.SetBuffer(m_kernelHandleDqBlend, "vertex_infos", m_bufVertInfo);
 
         m_bufMorphTemp1 = new ComputeBuffer(
             numVertInfos,
-            (sizeof(float) * 16) + (sizeof(int) * 4) + sizeof(float));
+            sizeof(float) * 16 + sizeof(int) * 4 + sizeof(float));
         m_bufMorphTemp2 = new ComputeBuffer(
             numVertInfos,
-            (sizeof(float) * 16) + (sizeof(int) * 4) + sizeof(float));
+            sizeof(float) * 16 + sizeof(int) * 4 + sizeof(float));
 
         // bind DQ buffer
 
-        var bindPoses = mesh.bindposes;
-        var bindDqs   = new DualQuaternion[numBindPosesData];
-        for (int i = 0; i < bindPoses.Length; i++)
+        var bindDqs = new DualQuaternion[numBindPosesData];
+        for (int i = 0; i < m_bindPoses.Length; i++)
         {
-            bindDqs[i].rotationQuaternion = bindPoses[i].rotation;
-            bindDqs[i].position           = bindPoses[i].GetPosition();
+            bindDqs[i].rotationQuaternion = m_bindPoses[i].rotation;
+            bindDqs[i].position           = m_bindPoses[i].GetPosition();
         }
 
         m_bufBindDq = new ComputeBuffer(bindDqs.Length, sizeof(float) * 8);
@@ -576,10 +557,7 @@ public class DualQuaternionSkinner : MonoBehaviour
             m_arrBufMorphDeltas,
             m_morphWeights);
 
-        m_shaderDqBlend.SetBuffer(
-            m_kernelHandleDqBlend,
-            "vertex_infos",
-            bufMorphedVertexInfos);
+        m_shaderDqBlend.SetBuffer(m_kernelHandleDqBlend, "vertex_infos", bufMorphedVertexInfos);
     }
 
     private ComputeBuffer GetMorphedVertexInfos(
@@ -595,14 +573,11 @@ public class DualQuaternionSkinner : MonoBehaviour
         {
             if (weights[i] == 0) { continue; }
 
-            if (arrBufDelta[i] == null) { throw new NullReferenceException(); }
+            if (arrBufDelta[i] == null) { throw new System.NullReferenceException(); }
 
             m_shaderApplyMorph.SetBuffer(m_kernelHandleApplyMorph, "source", bufSource);
             m_shaderApplyMorph.SetBuffer(m_kernelHandleApplyMorph, "target", bufTemp_1);
-            m_shaderApplyMorph.SetBuffer(
-                m_kernelHandleApplyMorph,
-                "delta",
-                arrBufDelta[i]);
+            m_shaderApplyMorph.SetBuffer(m_kernelHandleApplyMorph, "delta", arrBufDelta[i]);
             m_shaderApplyMorph.SetFloat("weight", weights[i] / 100f);
 
             int numThreadGroups = GetNumGroups(bufSource.count);
@@ -670,7 +645,7 @@ public class DualQuaternionSkinner : MonoBehaviour
     }
 
 #if UNITY_EDITOR
-    void Stop()
+    private void Stop()
     {
         Started = false;
         ReleaseBuffers();
@@ -706,13 +681,14 @@ public class DualQuaternionSkinner : MonoBehaviour
         m_shaderComputeBoneDq.SetMatrix("self_matrix", transform.worldToLocalMatrix);
         m_shaderComputeBoneDq.Dispatch(m_kernelHandleComputeBoneDq, numThreadGroups, 1, 1);
 
-        numThreadGroups =  GetNumGroups(MeshFilter.mesh.vertexCount);
+        numThreadGroups = GetNumGroups(MeshFilter.mesh.vertexCount);
         m_shaderDqBlend.SetFloat("compensation_coef", m_bulgeCompensation);
         m_shaderDqBlend.Dispatch(m_kernelHandleDqBlend, numThreadGroups, 1, 1);
 
         m_materialPropertyBlock.SetTexture("skinned_data_1", m_rtSkinnedData1);
         m_materialPropertyBlock.SetTexture("skinned_data_2", m_rtSkinnedData2);
         m_materialPropertyBlock.SetTexture("skinned_data_3", m_rtSkinnedData3);
+
         int textureHeight = GetVertexTextureHeight(MeshFilter.mesh.vertexCount);
         m_materialPropertyBlock.SetInt("skinned_tex_height", textureHeight);
         m_materialPropertyBlock.SetInt("skinned_tex_width", k_textureWidth);

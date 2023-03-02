@@ -31,7 +31,7 @@ float weight;
 [numthreads(NUM_THREADS_X, NUM_THREADS_Y, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    vertex_info vert_info = source.Load(id.x);
+    vertex_info vert_info  = source.Load(id.x);
     const morph_delta morph_info = delta.Load(id.x);
 
     vert_info.position += morph_info.position * weight;

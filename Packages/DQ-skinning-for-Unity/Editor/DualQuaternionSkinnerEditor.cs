@@ -2,8 +2,6 @@
 using UnityEditor;
 using UnityEngine;
 
-#if UNITY_EDITOR
-
 /// <summary>
 /// Provides custom inspector for {@link DualQuaternionSkinner}
 /// </summary>
@@ -89,11 +87,13 @@ public class DualQuaternionSkinnerEditor : Editor
 
         var currentOrientation = BoneOrientation.X;
         foreach (var orientation in boneOrientationVectors.Keys)
+        {
             if (m_dqs.m_boneOrientationVector == boneOrientationVectors[orientation])
             {
                 currentOrientation = orientation;
                 break;
             }
+        }
         var newOrientation = (BoneOrientation)EditorGUILayout.EnumPopup(
             "Bone orientation: ",
             currentOrientation);
@@ -205,5 +205,3 @@ public class DualQuaternionSkinnerEditor : Editor
         return false;
     }
 }
-
-#endif

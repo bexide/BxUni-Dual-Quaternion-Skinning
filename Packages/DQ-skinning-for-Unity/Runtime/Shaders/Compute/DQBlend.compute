@@ -59,21 +59,21 @@ vertex_info SkinVertex(vertex_info vertinfo)
     skinned_dq.translation_quaternion += dq2.translation_quaternion * bone_weights[2];
     skinned_dq.translation_quaternion += dq3.translation_quaternion * bone_weights[3];
 
-    const float mag = length(skinned_dq.rotation_quaternion);
-    skinned_dq.rotation_quaternion    /= mag;
-    skinned_dq.translation_quaternion /= mag;
+    const float mag = 1 / length(skinned_dq.rotation_quaternion);
+    skinned_dq.rotation_quaternion    *= mag;
+    skinned_dq.translation_quaternion *= mag;
 
-    vertinfo.position = QuaternionApplyRotation(vertinfo.position, skinned_dq.rotation_quaternion);
-    vertinfo.normal   = QuaternionApplyRotation(vertinfo.normal,   skinned_dq.rotation_quaternion);
-    vertinfo.tangent  = QuaternionApplyRotation(vertinfo.tangent,  skinned_dq.rotation_quaternion);
+    vertinfo.position = QuaternionApplyRotation(vertinfo.position,skinned_dq.rotation_quaternion);
+    vertinfo.normal   = QuaternionApplyRotation(vertinfo.normal,  skinned_dq.rotation_quaternion);
+    vertinfo.tangent  = QuaternionApplyRotation(vertinfo.tangent, skinned_dq.rotation_quaternion);
 
     vertinfo.position += QuaternionMultiply(skinned_dq.translation_quaternion * 2,
         QuaternionInvert(skinned_dq.rotation_quaternion));
-    vertinfo.normal = normalize(vertinfo.normal);
+    vertinfo.normal  = normalize(vertinfo.normal);
     vertinfo.tangent = normalize(vertinfo.tangent);
 
+#ifdef TWIST_COMPENSATION_EXPERIMENTAL
     // experimental
-
     float4 rq = QuaternionMultiply(dq0.rotation_quaternion, QuaternionInvert(dq1.rotation_quaternion));
 
     // branching is removed by the compiler optimization
@@ -101,7 +101,7 @@ vertex_info SkinVertex(vertex_info vertinfo)
 
         vertinfo.position.xyz += offset * compensation;
     }
-
+#endif
     return vertinfo;
 }
 

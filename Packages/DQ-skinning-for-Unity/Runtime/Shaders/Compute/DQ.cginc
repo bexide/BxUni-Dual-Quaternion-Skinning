@@ -33,9 +33,9 @@ dual_quaternion DualQuaternionMultiply(dual_quaternion dq1, dual_quaternion dq2)
     
     result.rotation_quaternion = QuaternionMultiply(dq1.rotation_quaternion, dq2.rotation_quaternion);
 
-    const float mag = length(result.rotation_quaternion);
-    result.rotation_quaternion /= mag;
-    result.translation_quaternion /= mag;
+    const float mag = 1 / length(result.rotation_quaternion);
+    result.rotation_quaternion    *= mag;
+    result.translation_quaternion *= mag;
 
     return result;
 }
@@ -56,10 +56,7 @@ float4 QuaternionApplyRotation(float4 v, float4 rotQ)
 
 inline float signNoZero(float x)
 {
-    const float s = sign(x);
-    if (s)
-        return s;
-    return 1;
+    return x < 0 ? -1 : 1;
 }
 
 dual_quaternion DualQuaternionFromMatrix4x4(float4x4 m)
@@ -83,4 +80,5 @@ dual_quaternion DualQuaternionFromMatrix4x4(float4x4 m)
 
     return dq;
 }
+
 #endif

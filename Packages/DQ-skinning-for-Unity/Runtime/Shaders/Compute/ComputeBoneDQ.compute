@@ -27,11 +27,11 @@ RWStructuredBuffer<float4> bone_directions;
 float4 boneOrientation;
 
 [numthreads(NUM_THREADS_X,NUM_THREADS_Y,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+void CSMain(uint3 id : SV_DispatchThreadID)
 {
     dual_quaternion dq_bind = bind_dual_quaternions.Load(id.x);
     dq_bind.translation_quaternion =
-        QuaternionMultiply(dq_bind.translation_quaternion,	dq_bind.rotation_quaternion) * 0.5;
+        QuaternionMultiply(dq_bind.translation_quaternion, dq_bind.rotation_quaternion) * 0.5;
 
     float4x4 pose_matrix = transpose(pose_matrices.Load(id.x));
     pose_matrix = mul(self_matrix, pose_matrix);
