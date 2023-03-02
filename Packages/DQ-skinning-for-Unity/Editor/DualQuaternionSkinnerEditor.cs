@@ -49,8 +49,8 @@ public class DualQuaternionSkinnerEditor : Editor
 
     private void OnEnable()
     {
-        m_shaderComputeBoneDq = serializedObject.FindProperty("m_shaderComputeBoneDQ");
-        m_shaderDqBlend       = serializedObject.FindProperty("m_shaderDQBlend");
+        m_shaderComputeBoneDq = serializedObject.FindProperty("m_shaderComputeBoneDq");
+        m_shaderDqBlend       = serializedObject.FindProperty("m_shaderDqBlend");
         m_shaderApplyMorph    = serializedObject.FindProperty("m_shaderApplyMorph");
         m_bulgeCompensation   = serializedObject.FindProperty("m_bulgeCompensation");
 
