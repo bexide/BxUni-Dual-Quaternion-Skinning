@@ -1,0 +1,108 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &8959144661081641752
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 429851129699571689, guid: 6fd2982d34a7d5f4ca80a14a5d565541,
+        type: 3}
+      propertyPath: m_RootOrder
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 429851129699571689, guid: 6fd2982d34a7d5f4ca80a14a5d565541,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 429851129699571689, guid: 6fd2982d34a7d5f4ca80a14a5d565541,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 429851129699571689, guid: 6fd2982d34a7d5f4ca80a14a5d565541,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 429851129699571689, guid: 6fd2982d34a7d5f4ca80a14a5d565541,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 429851129699571689, guid: 6fd2982d34a7d5f4ca80a14a5d565541,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 429851129699571689, guid: 6fd2982d34a7d5f4ca80a14a5d565541,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 429851129699571689, guid: 6fd2982d34a7d5f4ca80a14a5d565541,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 429851129699571689, guid: 6fd2982d34a7d5f4ca80a14a5d565541,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 429851129699571689, guid: 6fd2982d34a7d5f4ca80a14a5d565541,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 429851129699571689, guid: 6fd2982d34a7d5f4ca80a14a5d565541,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1061991891626315091, guid: 6fd2982d34a7d5f4ca80a14a5d565541,
+        type: 3}
+      propertyPath: m_Name
+      value: skinned_cube_DQ
+      objectReference: {fileID: 0}
+    - target: {fileID: 3017858228599431981, guid: 6fd2982d34a7d5f4ca80a14a5d565541,
+        type: 3}
+      propertyPath: m_Materials.Array.data[0]
+      value: 
+      objectReference: {fileID: 2100000, guid: 370aadd72178ffa49aa6bbb072fbb1f4, type: 2}
+    m_RemovedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 6fd2982d34a7d5f4ca80a14a5d565541, type: 3}
+--- !u!1 &5516966469732932053 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3514344122988612301, guid: 6fd2982d34a7d5f4ca80a14a5d565541,
+    type: 3}
+  m_PrefabInstance: {fileID: 8959144661081641752}
+  m_PrefabAsset: {fileID: 0}
+--- !u!33 &2235295153161853870
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5516966469732932053}
+  m_Mesh: {fileID: 0}
+--- !u!114 &967837242918294121
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5516966469732932053}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e0004cdd775567e43927565b65054c74, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_boneOrientationVector: {x: 0, y: 1, z: 0}
+  m_bulgeCompensation: 0
+  m_shaderComputeBoneDq: {fileID: 7200000, guid: df1ccfc7800b7ab4098502e437c79104,
+    type: 3}
+  m_shaderDqBlend: {fileID: 7200000, guid: a1e1ee6a394346c4fa309a3227bbc935, type: 3}
+  m_shaderApplyMorph: {fileID: 7200000, guid: 1dbb42e79e74eb743b4fa4c5e5acbda6, type: 3}

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -402,12 +403,9 @@ public class DualQuaternionSkinner : MonoBehaviour
             m_arrBufMorphDeltas[i].SetData(deltaVertInfos);
         }
 
-        var materials = SkinnedMeshRenderer.sharedMaterials;
-        for (int i = 0; i < materials.Length; i++)
-        {
-            materials[i].SetInt("_DoSkinning", 1);
-        }
-        MeshRenderer.materials = materials;
+        MeshRenderer.materials = SkinnedMeshRenderer.sharedMaterials;
+        var materials = MeshRenderer.materials;
+        foreach (var m in materials) { m.EnableKeyword("_DQ_SKINNING_ON"); }
 
         m_shaderDqBlend.SetInt("textureWidth", k_textureWidth);
 
@@ -682,11 +680,25 @@ public class DualQuaternionSkinner : MonoBehaviour
         }
 
         SkinnedMeshRenderer.enabled = false;
+        
+#if UNITY_EDITOR
+        EditorApplication.playModeStateChanged += OnEditorPlayModeChanged;
+#endif
     }
+    
+#if UNITY_EDITOR
+    void Stop()
+    {
+        Started = false;
+        ReleaseBuffers();
+    }
+#endif
 
     // Update is called once per frame
     private void Update()
     {
+        if (!Started) { return;}
+
         if (MeshRenderer.isVisible == false)
         {
             return;
@@ -733,4 +745,15 @@ public class DualQuaternionSkinner : MonoBehaviour
 
         MeshRenderer.SetPropertyBlock(m_materialPropertyBlock);
     }
+
+#if UNITY_EDITOR
+    private void OnEditorPlayModeChanged(PlayModeStateChange change)
+    {
+        if (change == PlayModeStateChange.ExitingPlayMode)
+        {
+            EditorApplication.playModeStateChanged -= OnEditorPlayModeChanged;
+            Stop();
+        }
+    }
+#endif
 }
