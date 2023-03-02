@@ -610,10 +610,7 @@ public class DualQuaternionSkinner : MonoBehaviour
 
         if (m_arrBufMorphDeltas != null)
         {
-            for (int i = 0; i < m_arrBufMorphDeltas.Length; i++)
-            {
-                m_arrBufMorphDeltas[i]?.Release();
-            }
+            foreach (var buf in m_arrBufMorphDeltas) { buf?.Release(); }
         }
     }
 
@@ -665,6 +662,11 @@ public class DualQuaternionSkinner : MonoBehaviour
     {
         if (!Started) { return; }
 
+        // update bounds
+        MeshRenderer.bounds = GetWorldBounds(
+            MeshFilter.mesh.bounds,
+            SkinnedMeshRenderer.rootBone.localToWorldMatrix);
+
         if (MeshRenderer.isVisible == false) { return; }
 
         MeshFilter.mesh.MarkDynamic(); // once or every frame? idk.
@@ -706,6 +708,21 @@ public class DualQuaternionSkinner : MonoBehaviour
         m_materialPropertyBlock.SetInt("skinned_tex_width", k_textureWidth);
 
         MeshRenderer.SetPropertyBlock(m_materialPropertyBlock);
+    }
+
+    private Bounds GetWorldBounds(Bounds localBounds, Matrix4x4 localToWorldMatrix)
+    {
+        var bounds = new Bounds();
+        var min    = localBounds.min;
+        var max    = localBounds.max;
+        bounds.Encapsulate(localToWorldMatrix.MultiplyPoint(new Vector3(min.x, min.y, min.z)));
+        bounds.Encapsulate(localToWorldMatrix.MultiplyPoint(new Vector3(min.x, max.y, min.z)));
+        bounds.Encapsulate(localToWorldMatrix.MultiplyPoint(new Vector3(max.x, max.y, min.z)));
+        bounds.Encapsulate(localToWorldMatrix.MultiplyPoint(new Vector3(min.x, min.y, max.z)));
+        bounds.Encapsulate(localToWorldMatrix.MultiplyPoint(new Vector3(max.x, min.y, max.z)));
+        bounds.Encapsulate(localToWorldMatrix.MultiplyPoint(new Vector3(min.x, max.y, max.z)));
+        bounds.Encapsulate(localToWorldMatrix.MultiplyPoint(new Vector3(max.x, max.y, max.z)));
+        return bounds;
     }
 
 #if UNITY_EDITOR
