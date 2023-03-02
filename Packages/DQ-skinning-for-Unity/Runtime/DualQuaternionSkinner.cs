@@ -79,6 +79,36 @@ public class DualQuaternionSkinner : MonoBehaviour
     public ComputeShader m_shaderDqBlend;
     public ComputeShader m_shaderApplyMorph;
 
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        if (m_shaderComputeBoneDq == null)
+        {
+            m_shaderComputeBoneDq = FindAssetOfType<ComputeShader>("ComputeBoneDQ");
+        }
+        if (m_shaderDqBlend == null)
+        {
+            m_shaderDqBlend = FindAssetOfType<ComputeShader>("DQBlend");
+        }
+        if (m_shaderApplyMorph == null)
+        {
+            m_shaderApplyMorph = FindAssetOfType<ComputeShader>("ApplyMorph");
+        }
+    }
+
+    private T FindAssetOfType<T>(string filter) where T : UnityEngine.Object
+    {
+        string[] guids = AssetDatabase.FindAssets(filter);
+        if (guids.Length <= 0)
+        {
+            return null;
+        }
+        string path = AssetDatabase.GUIDToAssetPath(guids[0]);
+        var    obj  = AssetDatabase.LoadAssetAtPath<T>(path);
+        return obj;
+    }
+#endif    
+
     /// <summary>
     /// Indicates whether DualQuaternionSkinner is currently active.
     /// </summary>
