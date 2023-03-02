@@ -28,7 +28,7 @@ RWStructuredBuffer<morph_delta> delta;
 
 float weight;
 
-[numthreads(1024, 1, 1)]
+[numthreads(NUM_THREADS_X, NUM_THREADS_Y, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
     vertex_info vert_info = source.Load(id.x);

@@ -26,7 +26,7 @@ RWStructuredBuffer<float4> bone_directions;
 
 float4 boneOrientation;
 
-[numthreads(1024,1,1)]
+[numthreads(NUM_THREADS_X,NUM_THREADS_Y,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     dual_quaternion dq_bind = bind_dual_quaternions.Load(id.x);

@@ -105,7 +105,7 @@ vertex_info SkinVertex(vertex_info vertinfo)
     return vertinfo;
 }
 
-[numthreads(1024,1,1)]
+[numthreads(NUM_THREADS_X,NUM_THREADS_Y,1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
     int2 pos;

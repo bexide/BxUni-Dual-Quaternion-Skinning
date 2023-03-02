@@ -1,3 +1,9 @@
+#ifndef _DQ_CGINC_
+#define _DQ_CGINC_
+
+#define NUM_THREADS_X 128
+#define NUM_THREADS_Y 1
+
 struct dual_quaternion
 {
     float4 rotation_quaternion;
@@ -77,3 +83,4 @@ dual_quaternion DualQuaternionFromMatrix4x4(float4x4 m)
 
     return dq;
 }
+#endif

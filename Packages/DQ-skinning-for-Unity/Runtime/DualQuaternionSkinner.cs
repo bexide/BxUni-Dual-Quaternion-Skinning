@@ -65,7 +65,7 @@ public class DualQuaternionSkinner : MonoBehaviour
         public Vector4    position;
     }
 
-    private const int k_numthreads   = 1024; // must be same in compute shader code
+    private const int k_numThreads   = 128; // must be same in compute shader code
     private const int k_textureWidth = 1024; // no need to adjust compute shaders
 
     /// <summary>
@@ -329,10 +329,12 @@ public class DualQuaternionSkinner : MonoBehaviour
     {
         if (Started == false) { return; }
 
-        var vertInfos = new VertexInfo[MeshFilter.mesh.vertexCount];
+        int vertexCount = MeshFilter.mesh.vertexCount;
+        int numData     = GetAlignedDataCount(vertexCount);
+        var vertInfos   = new VertexInfo[numData];
         m_bufVertInfo.GetData(vertInfos);
 
-        for (int i = 0; i < vertInfos.Length; i++)
+        for (int i = 0; i < vertexCount; i++)
         {
             var bindPose         = m_bindPoses[vertInfos[i].boneIndex0].inverse;
             var boneBindRotation = bindPose.rotation;
@@ -348,6 +350,24 @@ public class DualQuaternionSkinner : MonoBehaviour
         m_bufVertInfo.SetData(vertInfos);
         ApplyMorphs();
     }
+
+    // calculate group number for processing given data
+    private int GetNumGroups(int dataCount)
+    {
+        return (dataCount - 1) % k_numThreads + 1;
+    }
+
+    // calculate data number aligned around thread number
+    private int GetAlignedDataCount(int dataCount)
+    {
+        return GetNumGroups(dataCount) * k_numThreads;
+    }
+
+    // calculate texture height enough for given vertices
+    private int GetVertexTextureHeight(int vertexCount)
+    {
+        return (vertexCount-1) / k_textureWidth + 1;
+    }    
 
     private int GetVertexTextureHeight(int vertexCount, int textureWidth)
     {
@@ -365,17 +385,20 @@ public class DualQuaternionSkinner : MonoBehaviour
 
         m_bindPoses = mesh.bindposes;
 
-        m_arrBufMorphDeltas = new ComputeBuffer[mesh.blendShapeCount];
+        int blendShapeCount = mesh.blendShapeCount;
+        m_arrBufMorphDeltas = new ComputeBuffer[blendShapeCount];
 
-        m_morphWeights = new float[mesh.blendShapeCount];
+        m_morphWeights = new float[blendShapeCount];
 
-        var deltaVertices = new Vector3[mesh.vertexCount];
-        var deltaNormals  = new Vector3[mesh.vertexCount];
-        var deltaTangents = new Vector3[mesh.vertexCount];
+        int vertexCount   = mesh.vertexCount;
+        var deltaVertices = new Vector3[vertexCount];
+        var deltaNormals  = new Vector3[vertexCount];
+        var deltaTangents = new Vector3[vertexCount];
 
-        var deltaVertInfos = new MorphDelta[mesh.vertexCount];
+        int numVertInfos   = GetAlignedDataCount(vertexCount);
+        var deltaVertInfos = new MorphDelta[numVertInfos];
 
-        for (int i = 0; i < mesh.blendShapeCount; i++)
+        for (int i = 0; i < blendShapeCount; i++)
         {
             mesh.GetBlendShapeFrameVertices(
                 i,
@@ -384,11 +407,9 @@ public class DualQuaternionSkinner : MonoBehaviour
                 deltaNormals,
                 deltaTangents);
 
-            m_arrBufMorphDeltas[i] = new ComputeBuffer(
-                mesh.vertexCount,
-                sizeof(float) * 12);
+            m_arrBufMorphDeltas[i] = new ComputeBuffer(numVertInfos, sizeof(float) * 12);
 
-            for (int k = 0; k < mesh.vertexCount; k++)
+            for (int k = 0; k < vertexCount; k++)
             {
                 deltaVertInfos[k].position
                     = deltaVertices != null ? deltaVertices[k] : Vector3.zero;
@@ -411,7 +432,7 @@ public class DualQuaternionSkinner : MonoBehaviour
 
         // initiate textures and buffers
 
-        int textureHeight = GetVertexTextureHeight(mesh.vertexCount, k_textureWidth);
+        int textureHeight = GetVertexTextureHeight(mesh.vertexCount);
 
         m_rtSkinnedData1
             = new RenderTexture(k_textureWidth, textureHeight, 0, RenderTextureFormat.ARGBFloat)
@@ -440,13 +461,14 @@ public class DualQuaternionSkinner : MonoBehaviour
         m_rtSkinnedData3.Create();
         m_shaderDqBlend.SetTexture(m_kernelHandleDqBlend, "skinned_data_3", m_rtSkinnedData3);
 
-        m_bufPoseMatrices = new ComputeBuffer(mesh.bindposes.Length, sizeof(float) * 16);
+        int numBindPosesData = GetAlignedDataCount(mesh.bindposes.Length);
+        m_bufPoseMatrices = new ComputeBuffer(numBindPosesData, sizeof(float) * 16);
         m_shaderComputeBoneDq.SetBuffer(
             m_kernelHandleComputeBoneDq,
             "pose_matrices",
             m_bufPoseMatrices);
 
-        m_bufSkinnedDq = new ComputeBuffer(mesh.bindposes.Length, sizeof(float) * 8);
+        m_bufSkinnedDq = new ComputeBuffer(numBindPosesData, sizeof(float) * 8);
         m_shaderComputeBoneDq.SetBuffer(
             m_kernelHandleComputeBoneDq,
             "skinned_dual_quaternions",
@@ -456,7 +478,7 @@ public class DualQuaternionSkinner : MonoBehaviour
             "skinned_dual_quaternions",
             m_bufSkinnedDq);
 
-        m_bufBoneDirections = new ComputeBuffer(mesh.bindposes.Length, sizeof(float) * 4);
+        m_bufBoneDirections = new ComputeBuffer(numBindPosesData, sizeof(float) * 4);
         m_shaderComputeBoneDq.SetBuffer(
             m_kernelHandleComputeBoneDq,
             "bone_directions",
@@ -467,14 +489,14 @@ public class DualQuaternionSkinner : MonoBehaviour
             m_bufBoneDirections);
 
         m_bufVertInfo = new ComputeBuffer(
-            mesh.vertexCount,
+            numVertInfos,
             (sizeof(float) * 16) + (sizeof(int) * 4) + sizeof(float));
-        var vertInfos   = new VertexInfo[mesh.vertexCount];
+        var vertInfos   = new VertexInfo[numVertInfos];
         var vertices    = mesh.vertices;
         var normals     = mesh.normals;
         var tangents    = mesh.tangents;
         var boneWeights = mesh.boneWeights;
-        for (int i = 0; i < vertInfos.Length; i++)
+        for (int i = 0; i < vertexCount; i++)
         {
             vertInfos[i].position = vertices[i];
 
@@ -503,12 +525,12 @@ public class DualQuaternionSkinner : MonoBehaviour
 
         if (normals.Length > 0)
         {
-            for (int i = 0; i < vertInfos.Length; i++) { vertInfos[i].normal = normals[i]; }
+            for (int i = 0; i < mesh.vertexCount; i++) { vertInfos[i].normal = normals[i]; }
         }
 
         if (tangents.Length > 0)
         {
-            for (int i = 0; i < vertInfos.Length; i++) { vertInfos[i].tangent = tangents[i]; }
+            for (int i = 0; i < mesh.vertexCount; i++) { vertInfos[i].tangent = tangents[i]; }
         }
 
         m_bufVertInfo.SetData(vertInfos);
@@ -518,16 +540,16 @@ public class DualQuaternionSkinner : MonoBehaviour
             m_bufVertInfo);
 
         m_bufMorphTemp1 = new ComputeBuffer(
-            mesh.vertexCount,
+            numVertInfos,
             (sizeof(float) * 16) + (sizeof(int) * 4) + sizeof(float));
         m_bufMorphTemp2 = new ComputeBuffer(
-            mesh.vertexCount,
+            numVertInfos,
             (sizeof(float) * 16) + (sizeof(int) * 4) + sizeof(float));
 
         // bind DQ buffer
 
         var bindPoses = mesh.bindposes;
-        var bindDqs   = new DualQuaternion[bindPoses.Length];
+        var bindDqs   = new DualQuaternion[numBindPosesData];
         for (int i = 0; i < bindPoses.Length; i++)
         {
             bindDqs[i].rotationQuaternion = bindPoses[i].rotation;
@@ -583,9 +605,7 @@ public class DualQuaternionSkinner : MonoBehaviour
                 arrBufDelta[i]);
             m_shaderApplyMorph.SetFloat("weight", weights[i] / 100f);
 
-            int numThreadGroups = bufSource.count / k_numthreads;
-            if (bufSource.count % k_numthreads != 0) { numThreadGroups++; }
-
+            int numThreadGroups = GetNumGroups(bufSource.count);
             m_shaderApplyMorph.Dispatch(m_kernelHandleApplyMorph, numThreadGroups, 1, 1);
 
             bufSource = bufTemp_1;
@@ -681,29 +701,19 @@ public class DualQuaternionSkinner : MonoBehaviour
 
         // Calculate blended quaternions
 
-        int numThreadGroups = m_bones.Length / k_numthreads;
-        numThreadGroups += m_bones.Length % k_numthreads == 0 ? 0 : 1;
-
+        int numThreadGroups = GetNumGroups(m_bones.Length);
         m_shaderComputeBoneDq.SetVector("boneOrientation", m_boneOrientationVector);
-        m_shaderComputeBoneDq.SetMatrix(
-            "self_matrix",
-            transform.worldToLocalMatrix);
-        m_shaderComputeBoneDq.Dispatch(
-            m_kernelHandleComputeBoneDq,
-            numThreadGroups,
-            1,
-            1);
+        m_shaderComputeBoneDq.SetMatrix("self_matrix", transform.worldToLocalMatrix);
+        m_shaderComputeBoneDq.Dispatch(m_kernelHandleComputeBoneDq, numThreadGroups, 1, 1);
 
-        numThreadGroups =  MeshFilter.mesh.vertexCount / k_numthreads;
-        numThreadGroups += MeshFilter.mesh.vertexCount % k_numthreads == 0 ? 0 : 1;
-
+        numThreadGroups =  GetNumGroups(MeshFilter.mesh.vertexCount);
         m_shaderDqBlend.SetFloat("compensation_coef", m_bulgeCompensation);
         m_shaderDqBlend.Dispatch(m_kernelHandleDqBlend, numThreadGroups, 1, 1);
 
         m_materialPropertyBlock.SetTexture("skinned_data_1", m_rtSkinnedData1);
         m_materialPropertyBlock.SetTexture("skinned_data_2", m_rtSkinnedData2);
         m_materialPropertyBlock.SetTexture("skinned_data_3", m_rtSkinnedData3);
-        int textureHeight = GetVertexTextureHeight(MeshFilter.mesh.vertexCount, k_textureWidth);
+        int textureHeight = GetVertexTextureHeight(MeshFilter.mesh.vertexCount);
         m_materialPropertyBlock.SetInt("skinned_tex_height", textureHeight);
         m_materialPropertyBlock.SetInt("skinned_tex_width", k_textureWidth);
 
