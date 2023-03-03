@@ -12,12 +12,12 @@
 
 |Gif|Difference|
 |----|----|
-|<img src="https://raw.githubusercontent.com/ConstantineRudenko/DQ-skinning-for-Unity/master/Screenshots/before-after.gif" width="400">|<img src="https://raw.githubusercontent.com/ConstantineRudenko/DQ-skinning-for-Unity/master/Screenshots/diff.png" width="400">|
+|<img src="Screenshots/before-after.gif" width="400">|<img src="Screenshots/diff.png" width="400">|
 
 
 ### Bulging compensation demo
 
-<img src="https://raw.githubusercontent.com/ConstantineRudenko/DQ-skinning-for-Unity/master/Screenshots/Leg.gif" width="600">
+<img src="Screenshots/Leg.gif" width="600">
 
 ## Unity version
 The script was tested with following Unity versions:
@@ -30,18 +30,18 @@ The script was tested with following Unity versions:
 * Add `DualQuaternionSkinner.cs` component (it will require a `MeshFilter` component)
 * Enable mesh Read/Write in import settings<br>
 
-<img src="https://raw.githubusercontent.com/ConstantineRudenko/DQ-skinning-for-Unity/master/Screenshots/Mesh import settings.png" width="463">
+<img src="Screenshots/Mesh import settings.png" width="463">
 
 * All materials of the mesh should use a special shader to apply vertex positions. The shader is `MadCake/Material/Standard hacked for DQ skinning`
 * In order for bulging compensation to work properly, all the character's bones must have one local axis (consistent for all bones) aligned with the limb controlled by the corresponding bone.
 
 |Bones properly aligned|Bones not aligned|
 |----|----|
-|<img src="https://raw.githubusercontent.com/ConstantineRudenko/DQ-skinning-for-Unity/master/Screenshots/bones aligned.png" width="400">|<img src="https://raw.githubusercontent.com/ConstantineRudenko/DQ-skinning-for-Unity/master/Screenshots/bones not aligned.png" width="400">|
+|<img src="Screenshots/bones aligned.png" width="400">|<img src="Screenshots/bones not aligned.png" width="400">|
 
 * Whichever local axis of the bones was aligned with the limbs must be selected in the script gui:
 
-<img src="https://raw.githubusercontent.com/ConstantineRudenko/DQ-skinning-for-Unity/master/Screenshots/Orientation axis.png" width="363">
+<img src="Screenshots/Orientation axis.png" width="363">
 
 If bulging is increased instead of decreased, select same axis with different direction (**X**&nbsp;=>&nbsp;**Negative&nbsp;X**)
 
@@ -49,7 +49,7 @@ If bulging is increased instead of decreased, select same axis with different di
 
 The script is programmed to automatically detect common setup problems. Check out the editor:
 
-<img src="https://raw.githubusercontent.com/ConstantineRudenko/DQ-skinning-for-Unity/master/Screenshots/Problems.png" width="363">
+<img src="Screenshots/Problems.png" width="363">
 
 ### Warning
 You will not see any effect in edit mode.<br>
