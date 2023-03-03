@@ -12,10 +12,10 @@ forked repository is here [DQ-skinning-for-Unity](https://github.com/bexide/DQ-s
 
 ## Original features
 
-- Supports Unity package
-- Supports URP
-- Supports Metal Graphics API (fixed shader buffer size issue)
-- Fixed editor preview issue (crash on edit mode)
-- Fixed model importer issue (inconsistent bone order)
-- Fixed clipping issue (realtime updates bonding box)
-- Added bone reorder utility
+- Supports Unity package.
+- Supports URP.
+- Supports Metal Graphics API. (fixes shader buffer size issue)
+- Fixes editor preview issues, such as crashes during edit mode.
+- Fixes model importer issues related to inconsistent bone order.
+- Fixes clipping issues by adding real-time updates to the bonding box.
+- Adds a utility for reordering bones.
