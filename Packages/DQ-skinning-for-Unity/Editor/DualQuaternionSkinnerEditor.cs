@@ -13,23 +13,23 @@ public class DualQuaternionSkinnerEditor : Editor
     private SerializedProperty m_shaderApplyMorph;
     private SerializedProperty m_bulgeCompensation;
 
-    private DualQuaternionSkinner m_dqs;
+    private DualQuaternionSkinner m_dualQuaternionSkinner;
 
-    private SkinnedMeshRenderer Smr
+    private SkinnedMeshRenderer SkinnedMeshRenderer
     {
         get
         {
-            if (m_smr == null)
+            if (m_skinnedMeshRenderer == null)
             {
-                m_smr = ((DualQuaternionSkinner)target).gameObject
+                m_skinnedMeshRenderer = ((DualQuaternionSkinner)target).gameObject
                     .GetComponent<SkinnedMeshRenderer>();
             }
 
-            return m_smr;
+            return m_skinnedMeshRenderer;
         }
     }
 
-    private SkinnedMeshRenderer m_smr;
+    private SkinnedMeshRenderer m_skinnedMeshRenderer;
 
     private bool m_showBlendShapes;
 
@@ -64,7 +64,7 @@ public class DualQuaternionSkinnerEditor : Editor
     {
         serializedObject.Update();
 
-        m_dqs = (DualQuaternionSkinner)target;
+        m_dualQuaternionSkinner = (DualQuaternionSkinner)target;
 
         EditorGUILayout.BeginHorizontal();
         EditorGUILayout.LabelField("Mode: ", GUILayout.Width(80));
@@ -75,20 +75,20 @@ public class DualQuaternionSkinnerEditor : Editor
 
         EditorGUILayout.BeginHorizontal();
         EditorGUILayout.LabelField("DQ skinning: ", GUILayout.Width(80));
-        EditorGUILayout.LabelField(m_dqs.Started ? "ON" : "OFF", GUILayout.Width(80));
+        EditorGUILayout.LabelField(this.m_dualQuaternionSkinner.Started ? "ON" : "OFF", GUILayout.Width(80));
         EditorGUILayout.EndHorizontal();
 
         EditorGUILayout.Space();
-        m_dqs.SetViewFrustumCulling(
+        m_dualQuaternionSkinner.SetViewFrustumCulling(
             EditorGUILayout.Toggle(
                 "View frustrum culling: ",
-                m_dqs.GetViewFrustumCulling()));
+                this.m_dualQuaternionSkinner.GetViewFrustumCulling()));
         EditorGUILayout.Space();
 
-        var currentOrientation = BoneOrientation.X;
-        foreach (var orientation in boneOrientationVectors.Keys)
+        BoneOrientation currentOrientation = BoneOrientation.X;
+        foreach (BoneOrientation orientation in boneOrientationVectors.Keys)
         {
-            if (m_dqs.m_boneOrientationVector == boneOrientationVectors[orientation])
+            if (m_dualQuaternionSkinner.m_boneOrientationVector == boneOrientationVectors[orientation])
             {
                 currentOrientation = orientation;
                 break;
@@ -97,10 +97,10 @@ public class DualQuaternionSkinnerEditor : Editor
         var newOrientation = (BoneOrientation)EditorGUILayout.EnumPopup(
             "Bone orientation: ",
             currentOrientation);
-        if (m_dqs.m_boneOrientationVector != boneOrientationVectors[newOrientation])
+        if (m_dualQuaternionSkinner.m_boneOrientationVector != boneOrientationVectors[newOrientation])
         {
-            m_dqs.m_boneOrientationVector = boneOrientationVectors[newOrientation];
-            m_dqs.UpdatePerVertexCompensationCoef();
+            m_dualQuaternionSkinner.m_boneOrientationVector = boneOrientationVectors[newOrientation];
+            m_dualQuaternionSkinner.UpdatePerVertexCompensationCoef();
         }
 
         EditorGUILayout.PropertyField(m_bulgeCompensation);
@@ -110,23 +110,23 @@ public class DualQuaternionSkinnerEditor : Editor
 
         if (m_showBlendShapes)
         {
-            if (m_dqs.Started == false)
+            if (m_dualQuaternionSkinner.Started == false)
             {
                 EditorGUI.BeginChangeCheck();
                 Undo.RecordObject(
-                    m_dqs.gameObject.GetComponent<SkinnedMeshRenderer>(),
+                    m_dualQuaternionSkinner.gameObject.GetComponent<SkinnedMeshRenderer>(),
                     "changed blendshape weights by DualQuaternionSkinner component");
             }
 
-            for (int i = 0; i < m_dqs.Mesh.blendShapeCount; i++)
+            for (int i = 0; i < m_dualQuaternionSkinner.Mesh.blendShapeCount; i++)
             {
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField(
-                    "   " + m_dqs.Mesh.GetBlendShapeName(i),
+                    "   " + m_dualQuaternionSkinner.Mesh.GetBlendShapeName(i),
                     GUILayout.Width(EditorGUIUtility.labelWidth - 10));
-                float weight = EditorGUILayout.Slider(m_dqs.GetBlendShapeWeight(i), 0, 100);
+                float weight = EditorGUILayout.Slider(m_dualQuaternionSkinner.GetBlendShapeWeight(i), 0, 100);
                 EditorGUILayout.EndHorizontal();
-                m_dqs.SetBlendShapeWeight(i, weight);
+                m_dualQuaternionSkinner.SetBlendShapeWeight(i, weight);
             }
         }
 
@@ -149,9 +149,9 @@ public class DualQuaternionSkinnerEditor : Editor
 
     private bool CheckProblems()
     {
-        var wrapStyle = new GUIStyle { wordWrap = true };
+        var wrapStyle = new GUIStyle(GUI.skin.GetStyle("label")) { wordWrap = true };
 
-        if (Smr.sharedMesh.isReadable == false)
+        if (SkinnedMeshRenderer.sharedMesh.isReadable == false)
         {
             EditorGUILayout.Space();
             EditorGUILayout.LabelField(
@@ -160,19 +160,19 @@ public class DualQuaternionSkinnerEditor : Editor
             return true;
         }
 
-        if (Smr.rootBone.parent != m_dqs.gameObject.transform.parent)
+        if (SkinnedMeshRenderer.rootBone.parent != m_dualQuaternionSkinner.gameObject.transform.parent)
         {
             EditorGUILayout.Space();
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField(
-                "Skinned object and root bone must be children of the same parent",
+                $"Skinned object '{m_dualQuaternionSkinner.gameObject.name}' and root bone '{SkinnedMeshRenderer.rootBone.name}' must be children of the same parent",
                 wrapStyle);
             if (GUILayout.Button("auto fix"))
             {
                 Undo.SetTransformParent(
-                    Smr.rootBone,
-                    m_dqs.gameObject.transform.parent,
+                    SkinnedMeshRenderer.rootBone,
+                    m_dualQuaternionSkinner.gameObject.transform.parent,
                     "Changed root bone's parent by Dual Quaternion Skinner (auto fix)");
                 EditorApplication.RepaintHierarchyWindow();
             }
@@ -181,14 +181,15 @@ public class DualQuaternionSkinnerEditor : Editor
             return true;
         }
 
-        foreach (var bone in Smr.bones)
+        foreach (var bone in SkinnedMeshRenderer.bones)
+        {
             if (bone.localScale != Vector3.one)
             {
                 EditorGUILayout.Space();
 
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField(
-                    string.Format("Bone scaling not supported: {0}", bone.name),
+                    $"Bone scaling not supported: {bone.name}",
                     wrapStyle);
                 if (GUILayout.Button("auto fix"))
                 {
@@ -201,6 +202,7 @@ public class DualQuaternionSkinnerEditor : Editor
 
                 return true;
             }
+        }
 
         return false;
     }
