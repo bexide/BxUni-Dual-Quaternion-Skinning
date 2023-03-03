@@ -1,0 +1,122 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+#pragma multi_compile_local __ TWIST_COMPENSATION_EXPERIMENTAL
+
+#include "DQ.cginc"
+
+struct bone_weight_info
+{
+    int4 bone_indexes;
+    float4 bone_weights;
+};
+
+struct vertex_info
+{
+    float4 position;
+    float4 normal;
+    float4 tangent;
+
+    int4 bone_indexes;
+    float4 bone_weights;
+
+    float compensation_coef;
+};
+
+float compensation_coef;
+
+RWStructuredBuffer<dual_quaternion> skinned_dual_quaternions;
+RWStructuredBuffer<vertex_info> vertex_infos;
+
+uint textureWidth;
+RWTexture2D<float4> skinned_data_1;
+RWTexture2D<float4> skinned_data_2;
+RWTexture2D<float2> skinned_data_3;
+
+RWStructuredBuffer<float4> bone_directions;
+
+vertex_info SkinVertex(vertex_info vertinfo)
+{
+    const int4 bone_indexes   = vertinfo.bone_indexes;
+    const float4 bone_weights = vertinfo.bone_weights;
+
+    const dual_quaternion dq0 = skinned_dual_quaternions.Load(bone_indexes[0]);
+    dual_quaternion dq1 = skinned_dual_quaternions.Load(bone_indexes[1]);
+    dual_quaternion dq2 = skinned_dual_quaternions.Load(bone_indexes[2]);
+    dual_quaternion dq3 = skinned_dual_quaternions.Load(bone_indexes[3]);
+
+    dq1 = DualQuaternionShortestPath(dq1, dq0);
+    dq2 = DualQuaternionShortestPath(dq2, dq0);
+    dq3 = DualQuaternionShortestPath(dq3, dq0);
+
+    dual_quaternion skinned_dq;
+    skinned_dq.rotation_quaternion =  dq0.rotation_quaternion * bone_weights[0];
+    skinned_dq.rotation_quaternion += dq1.rotation_quaternion * bone_weights[1];
+    skinned_dq.rotation_quaternion += dq2.rotation_quaternion * bone_weights[2];
+    skinned_dq.rotation_quaternion += dq3.rotation_quaternion * bone_weights[3];
+
+    skinned_dq.translation_quaternion =  dq0.translation_quaternion * bone_weights[0];
+    skinned_dq.translation_quaternion += dq1.translation_quaternion * bone_weights[1];
+    skinned_dq.translation_quaternion += dq2.translation_quaternion * bone_weights[2];
+    skinned_dq.translation_quaternion += dq3.translation_quaternion * bone_weights[3];
+
+    const float mag = 1 / length(skinned_dq.rotation_quaternion);
+    skinned_dq.rotation_quaternion    *= mag;
+    skinned_dq.translation_quaternion *= mag;
+
+    vertinfo.position = QuaternionApplyRotation(vertinfo.position,skinned_dq.rotation_quaternion);
+    vertinfo.normal   = QuaternionApplyRotation(vertinfo.normal,  skinned_dq.rotation_quaternion);
+    vertinfo.tangent  = QuaternionApplyRotation(vertinfo.tangent, skinned_dq.rotation_quaternion);
+
+    vertinfo.position += QuaternionMultiply(skinned_dq.translation_quaternion * 2,
+        QuaternionInvert(skinned_dq.rotation_quaternion));
+    vertinfo.normal  = normalize(vertinfo.normal);
+    vertinfo.tangent = normalize(vertinfo.tangent);
+
+#ifdef TWIST_COMPENSATION_EXPERIMENTAL
+    // experimental
+    float4 rq = QuaternionMultiply(dq0.rotation_quaternion, QuaternionInvert(dq1.rotation_quaternion));
+
+    // branching is removed by the compiler optimization
+    if (bone_weights[1] != 0.0 && length(rq.xyz) > 0.001)
+    {
+        float4 boneDir0 = bone_directions.Load(bone_indexes[0]);
+        float4 boneDir1 = bone_directions.Load(bone_indexes[1]);
+
+        const float3 axis = normalize(rq.xyz);
+        float3 bisector = normalize(boneDir0.xyz + boneDir1.xyz);
+        bisector = bone_indexes[0] > bone_indexes[1] ? bisector : -bisector;
+
+        const float3 offset = bisector - axis * dot(axis, bisector);
+
+        float angleCoef = saturate(2.0*sqrt(1.0-rq.w));
+
+        const float x = bone_weights[1] / (bone_weights[0] + bone_weights[1]);
+        float compensation = 2.2*x-9.6*x*x+10.4*x*x*x;
+
+        compensation *= vertinfo.compensation_coef;
+        compensation *= compensation_coef;
+        compensation *= angleCoef;
+        compensation *= 1.0 - bone_weights[2] / bone_weights[1];
+        compensation *= bone_weights[0] + bone_weights[1];
+
+        vertinfo.position.xyz += offset * compensation;
+    }
+#endif
+    return vertinfo;
+}
+
+[numthreads(NUM_THREADS_X,NUM_THREADS_Y,1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    int2 pos;
+    pos.x = id.x % textureWidth;
+    pos.y = id.x / textureWidth;
+
+    vertex_info vert_info = vertex_infos.Load(id.x);
+
+    vert_info = SkinVertex(vert_info);
+
+    skinned_data_1[pos] = float4(vert_info.position.xyz, vert_info.normal.x);
+    skinned_data_2[pos] = float4(vert_info.normal.yz, vert_info.tangent.xy);
+    skinned_data_3[pos] = vert_info.tangent.zw;
+}
